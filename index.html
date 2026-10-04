@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>🎁 ラッキー抽選</title>
+<style>
+  :root {
+    --gold: #ffd76e;
+    --purple: #7b5cff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans",
+                 "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo",
+                 "Noto Sans JP", sans-serif;
+    min-height: 100vh;
+    background: radial-gradient(circle at 15% 10%, #2c1d63 0%, #14102e 45%, #07050f 100%);
+    color: #eceaf6;
+    display: flex;
+    justify-content: center;
+    padding: 28px 16px 60px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .app { width: 100%; max-width: 520px; }
+  h1 {
+    text-align: center;
+    font-size: 26px;
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+    background: linear-gradient(90deg, #ffd76e, #ff9de2, #7b5cff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .subtitle {
+    text-align: center;
+    font-size: 13px;
+    color: #9b95b8;
+    margin-bottom: 22px;
+    line-height: 1.7;
+  }
+  .card {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 18px;
+    padding: 22px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.35);
+    margin-bottom: 18px;
+  }
+  .hidden { display: none !important; }
+
+  .label {
+    display: block;
+    font-size: 13px;
+    color: #9b95b8;
+    margin-bottom: 8px;
+  }
+  input[type=text] {
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(0,0,0,0.3);
+    color: #fff;
+    font-size: 16px;
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+    margin-bottom: 14px;
+    letter-spacing: 1px;
+  }
+  input[type=text]:focus {
+    border-color: var(--purple);
+    box-shadow: 0 0 0 3px rgba(123,92,255,0.25);
+  }
+  input::placeholder { color: #6f6a8a; letter-spacing: 0; }
+
+  .btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    color: #1a1330;
+    background: linear-gradient(135deg, #ffd76e, #ffb347);
+    transition: transform .15s, box-shadow .2s, filter .2s;
+    letter-spacing: 1px;
+    font-family: inherit;
+  }
+  .btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(255,190,80,.35); }
+  .btn:active:not(:disabled) { transform: translateY(0); }
+  .btn:disabled { filter: grayscale(.75) brightness(.7); cursor: not-allowed; }
+
+  .userbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 14px;
+    color: #b9b3d6;
+    margin-bottom: 14px;
+  }
+  .userbar b { color: #fff; font-family: ui-monospace, Menlo, monospace; letter-spacing: 1px; }
+  .link {
+    background: none;
+    border: none;
+    color: #8e88ab;
+    font-size: 13px;
+    cursor: pointer;
+    text-decoration: underline;
+    font-family: inherit;
+    padding: 4px;
+  }
+  .link:hover { color: #fff; }
+
+  .chances {
+    text-align: center;
+    font-size: 14px;
+    color: #b9b3d6;
+    margin-bottom: 4px;
+  }
+  .chances b {
+    font-size: 20px;
+    color: var(--gold);
+    font-family: ui-monospace, Menlo, monospace;
+    padding: 0 2px;
+  }
+
+  .stage { display: flex; justify-content: center; margin: 18px 0; }
+  .box {
+    width: 130px;
+    height: 130px;
+    border-radius: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 58px;
+    line-height: 1;
+    background: linear-gradient(145deg, rgba(255,255,255,0.12), rgba(255,255,255,0.02));
+    border: 2px solid rgba(255,255,255,0.15);
+    box-shadow: inset 0 0 30px rgba(123,92,255,0.25);
+    user-select: none;
+    transition: box-shadow .3s, border-color .3s;
+  }
+  .box.rolling { animation: shake .18s infinite; }
+  @keyframes shake {
+    0%   { transform: rotate(-4deg) scale(1); }
+    50%  { transform: rotate(4deg) scale(1.06); }
+    100% { transform: rotate(-4deg) scale(1); }
+  }
+  .box.win {
+    border-color: var(--gold);
+    box-shadow: 0 0 40px rgba(255,215,110,.6), inset 0 0 30px rgba(255,215,110,.3);
+    animation: pop .5s ease;
+  }
+  @keyframes pop {
+    0%   { transform: scale(.7); }
+    60%  { transform: scale(1.18); }
+    100% { transform: scale(1); }
+  }
+
+  .msg {
+    text-align: center;
+    font-size: 14px;
+    min-height: 22px;
+    color: #b9b3d6;
+    margin-top: 12px;
+    line-height: 1.6;
+  }
+  .msg.win { color: var(--gold); font-weight: 700; font-size: 16px; }
+
+  .card-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 17px;
+    margin-bottom: 14px;
+    font-weight: 700;
+  }
+  .badge {
+    background: rgba(255,215,110,.15);
+    color: var(--gold);
+    border-radius: 999px;
+    padding: 2px 10px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  #winnerList {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 320px;
+    overflow-y: auto;
+  }
+  #winnerList::-webkit-scrollbar { width: 5px; }
+  #winnerList::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 4px; }
+  .winner-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 14px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.07);
+    animation: slideIn .35s ease;
+  }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(-8px); } }
+  .winner-item .medal { font-size: 18px; }
+  .winner-item .sid {
+    flex: 1;
+    font-weight: 700;
+    font-family: ui-monospace, Menlo, monospace;
+    letter-spacing: 1px;
+    word-break: break-all;
+  }
+  .winner-item .time { font-size: 12px; color: #8e88ab; white-space: nowrap; }
+  .empty { text-align: center; color: #8e88ab; font-size: 14px; padding: 20px 0; }
+
+  .confetti {
+    position: fixed;
+    top: -24px;
+    width: 8px;
+    height: 14px;
+    border-radius: 2px;
+    z-index: 999;
+    pointer-events: none;
+    animation: fall linear forwards;
+  }
+  @keyframes fall {
+    to { transform: translateY(110vh) rotate(720deg); opacity: .15; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>🎁 ラッキー抽選</h1>
+  <p class="subtitle">1人3回チャンス · 当選確率 20% · 当選は1回まで</p>
+
+  <div id="loginPanel" class="card">
+    <label class="label" for="sidInput">学生番号を入力してログイン</label>
+    <input id="sidInput" type="text" placeholder="例：20240101" maxlength="20" autocomplete="off">
+    <button id="loginBtn" class="btn">ログイン</button>
+  </div>
+
+  <div id="gamePanel" class="card hidden">
+    <div class="userbar">
+      <span>👤 学生番号：<b id="curSid">-</b></span>
+      <button id="logoutBtn" class="link">アカウント切替</button>
+    </div>
+    <div class="chances">残り回数：<b id="chancesLeft">3</b> / 3</div>
+    <div class="stage">
+      <div id="box" class="box">?</div>
+    </div>
+    <button id="drawBtn" class="btn">抽選を開始</button>
+    <div id="msg" class="msg"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">
+      🏆 当選者リスト <span class="badge" id="winnerCount">0 人</span>
+    </div>
+    <ul id="winnerList"></ul>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const STORE_KEY   = 'lottery_game_v2';
+  const CUR_SID_KEY = 'lottery_current_sid_v2';
+  const MAX_DRAWS   = 3;
+  const WIN_RATE    = 0.2;
+
+  try {
+    localStorage.removeItem('lottery_game_v1');
+    localStorage.removeItem('lottery_current_sid');
+  } catch (e) {}
+
+  const state = { sid: null, busy: false };
+
+  function loadData() {
+    try {
+      const raw = localStorage.getItem(STORE_KEY);
+      if (raw) {
+        const d = JSON.parse(raw);
+        if (d && typeof d === 'object' && d.users && Array.isArray(d.winners)) {
+          return d;
+        }
+      }
+    } catch (e) {}
+    return { users: {}, winners: [] };
+  }
+
+  function saveData(data) {
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify(data));
+    } catch (e) {
+      console.warn('保存に失敗しました（プライベートモードの可能性があります）', e);
+    }
+  }
+
+  function $(id) { return document.getElementById(id); }
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function formatTime(ts) {
+    const d = new Date(ts);
+    const p = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  }
+
+  function setMsg(text, type) {
+    const el = $('msg');
+    el.textContent = text || '';
+    el.className = 'msg' + (type ? ' ' + type : '');
+  }
+
+  function renderWinners() {
+    const d = loadData();
+    const list = $('winnerList');
+    $('winnerCount').textContent = d.winners.length + ' 人';
+
+    if (!d.winners.length) {
+      list.innerHTML = '<li class="empty">まだ当選者はいません。最初のラッキーさんになりましょう ✨</li>';
+      return;
+    }
+
+    const sorted = d.winners.slice().sort((a, b) => b.time - a.time);
+    list.innerHTML = sorted.map(function (w, i) {
+      return '<li class="winner-item">' +
+               '<span class="medal">' + (i === 0 ? '🥇' : '🏆') + '</span>' +
+               '<span class="sid">' + escapeHtml(w.sid) + '</span>' +
+               '<span class="time">' + formatTime(w.time) + '</span>' +
+             '</li>';
+    }).join('');
+  }
+
+  function renderGame() {
+    const d = loadData();
+    const u = d.users[state.sid];
+    if (!u) return;
+
+    $('curSid').textContent = state.sid;
+    $('chancesLeft').textContent = u.left;
+
+    const btn = $('drawBtn');
+    if (u.won) {
+      btn.disabled = true;
+      btn.textContent = '当選済み 🎉';
+    } else if (u.left <= 0) {
+      btn.disabled = true;
+      btn.textContent = '回数を使い切りました';
+    } else {
+      btn.disabled = state.busy;
+      btn.textContent = '抽選を開始';
+    }
+  }
+
+  function login() {
+    const input = $('sidInput');
+    const sid = input.value.trim();
+
+    if (!sid) { alert('学生番号を入力してください'); input.focus(); return; }
+    if (!/^[0-9A-Za-z_\u4e00-\u9fa5\u3040-\u30ff-]{2,20}$/.test(sid)) {
+      alert('学生番号の形式が正しくありません（2〜20文字の英数字・アンダースコア・日本語）');
+      return;
+    }
+
+    const d = loadData();
+    if (!d.users[sid]) {
+      d.users[sid] = { left: MAX_DRAWS, won: false };
+      saveData(d);
+    }
+
+    state.sid = sid;
+    try { localStorage.setItem(CUR_SID_KEY, sid); } catch (e) {}
+    input.value = '';
+    showGame();
+  }
+
+  function logout() {
+    state.sid = null;
+    try { localStorage.removeItem(CUR_SID_KEY); } catch (e) {}
+    $('gamePanel').classList.add('hidden');
+    $('loginPanel').classList.remove('hidden');
+    $('sidInput').focus();
+  }
+
+  function showGame() {
+    $('loginPanel').classList.add('hidden');
+    $('gamePanel').classList.remove('hidden');
+
+    const d = loadData();
+    const u = d.users[state.sid];
+    const box = $('box');
+    box.classList.remove('rolling');
+
+    if (u && u.won) {
+      box.textContent = '🎉';
+      box.classList.add('win');
+      setMsg('すでに当選しています。幸運を友達にもシェアしましょう～', 'win');
+    } else if (u && u.left <= 0) {
+      box.textContent = '😢';
+      box.classList.remove('win');
+      setMsg('3回のチャンスを使い切りました。また次回挑戦してください～');
+    } else {
+      box.textContent = '?';
+      box.classList.remove('win');
+      setMsg('');
+    }
+
+    renderGame();
+    renderWinners();
+  }
+
+  function draw() {
+    if (state.busy || !state.sid) return;
+
+    const d = loadData();
+    const u = d.users[state.sid];
+    if (!u) return;
+
+    if (u.won) { setMsg('すでに当選しています。チャンスは他の人に譲りましょう～', 'win'); return; }
+    if (u.left <= 0) { setMsg('抽選回数を使い切りました'); return; }
+
+    state.busy = true;
+    const btn = $('drawBtn');
+    const box = $('box');
+    btn.disabled = true;
+    btn.textContent = '抽選中...';
+    setMsg('');
+    box.classList.remove('win');
+    box.classList.add('rolling');
+
+    const isWin = Math.random() < WIN_RATE;
+
+    const faces = ['🎁', '🎈', '🎯', '🍀', '⭐', '🎲', '🔔', '💎'];
+    let i = 0;
+    const timer = setInterval(function () {
+      box.textContent = faces[i++ % faces.length];
+    }, 80);
+
+    setTimeout(function () {
+      clearInterval(timer);
+      box.classList.remove('rolling');
+
+      u.left -= 1;
+
+      if (isWin) {
+        u.won = true;
+        u.left = 0;
+        d.winners.push({ sid: state.sid, time: Date.now() });
+        saveData(d);
+
+        box.textContent = '🎉';
+        box.classList.add('win');
+        setMsg('🎊 おめでとうございます！当選しました！', 'win');
+        burstConfetti();
+      } else {
+        saveData(d);
+        box.textContent = '😢';
+        if (u.left > 0) {
+          setMsg('残念、はずれです～ あと ' + u.left + ' 回チャンスがあります');
+        } else {
+          setMsg('残念、3回のチャンスを使い切りました。また次回挑戦してください～');
+        }
+      }
+
+      state.busy = false;
+      renderGame();
+      renderWinners();
+    }, 1100);
+  }
+
+  function burstConfetti() {
+    const colors = ['#ff6b6b', '#ffd93d', '#6bcB77', '#4d96ff', '#f06595', '#ffd76e'];
+    for (let i = 0; i < 50; i++) {
+      const el = document.createElement('div');
+      el.className = 'confetti';
+      el.style.left = Math.random() * 100 + 'vw';
+      el.style.background = colors[Math.floor(Math.random() * colors.length)];
+      el.style.animationDelay = (Math.random() * 0.4) + 's';
+      el.style.animationDuration = (1.6 + Math.random() * 1.2) + 's';
+      document.body.appendChild(el);
+      setTimeout(function () { el.remove(); }, 3400);
+    }
+  }
+
+  $('loginBtn').addEventListener('click', login);
+  $('sidInput').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') login();
+  });
+  $('logoutBtn').addEventListener('click', logout);
+  $('drawBtn').addEventListener('click', draw);
+
+  (function init() {
+    renderWinners();
+    let sid = null;
+    try { sid = localStorage.getItem(CUR_SID_KEY); } catch (e) {}
+    if (sid) {
+      const d = loadData();
+      if (d.users[sid]) {
+        state.sid = sid;
+        showGame();
+        return;
+      }
+    }
+    $('sidInput').focus();
+  })();
+})();
+</script>
+</body>
+</html>
